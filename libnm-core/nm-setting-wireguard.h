@@ -36,6 +36,24 @@ G_BEGIN_DECLS
 
 /*****************************************************************************/
 
+/**
+ * NMWireGuardFlags:
+ * @NM_WIREGUARD_FLAGS_NONE: no flags enabled. This is the default.
+ * @NM_WIREGUARD_FLAGS_NO_PEER_ROUTES: don't automatically add routes for
+ *   the AllowedIPs of the peers. In this case, you may want to add explict
+ *   static routes to the profile.
+ *
+ * Since: 1.16
+ */
+typedef enum { /*< flags, underscore_name=nm_wireguard_flags >*/
+	NM_WIREGUARD_FLAGS_NONE           = 0,
+	NM_WIREGUARD_FLAGS_NO_PEER_ROUTES = 0x1,
+
+	_NM_WIREGUARD_FLAGS_ALL           = 0x1, /*< skip >*/
+} NMWireGuardFlags;
+
+/*****************************************************************************/
+
 typedef struct _NMWireGuardPeer NMWireGuardPeer;
 
 NM_AVAILABLE_IN_1_16
@@ -133,8 +151,8 @@ int nm_wireguard_peer_cmp (const NMWireGuardPeer *a,
 
 #define NM_SETTING_WIREGUARD_PEERS             "peers"
 
+#define NM_SETTING_WIREGUARD_FLAGS             "flags"
 #define NM_SETTING_WIREGUARD_MTU               "mtu"
-#define NM_SETTING_WIREGUARD_PEER_ROUTES       "peer-routes"
 
 #define NM_WIREGUARD_PEER_ATTR_ALLOWED_IPS          "allowed-ips"
 #define NM_WIREGUARD_PEER_ATTR_ENDPOINT             "endpoint"
@@ -198,7 +216,7 @@ NM_AVAILABLE_IN_1_16
 guint nm_setting_wireguard_clear_peers (NMSettingWireGuard *self);
 
 NM_AVAILABLE_IN_1_16
-gboolean nm_setting_wireguard_get_peer_routes (NMSettingWireGuard *self);
+NMWireGuardFlags nm_setting_wireguard_get_flags (NMSettingWireGuard *self);
 
 NM_AVAILABLE_IN_1_16
 guint32 nm_setting_wireguard_get_mtu (NMSettingWireGuard *self);

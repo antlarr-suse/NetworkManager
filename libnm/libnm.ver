@@ -1464,12 +1464,12 @@ global:
 	nm_setting_wifi_p2p_new;
 	nm_setting_wireguard_append_peer;
 	nm_setting_wireguard_clear_peers;
+	nm_setting_wireguard_get_flags;
 	nm_setting_wireguard_get_fwmark;
 	nm_setting_wireguard_get_listen_port;
 	nm_setting_wireguard_get_mtu;
 	nm_setting_wireguard_get_peer;
 	nm_setting_wireguard_get_peer_by_public_key;
-	nm_setting_wireguard_get_peer_routes;
 	nm_setting_wireguard_get_peers_len;
 	nm_setting_wireguard_get_private_key;
 	nm_setting_wireguard_get_private_key_flags;
@@ -1492,6 +1492,7 @@ global:
 	nm_wifi_p2p_peer_get_strength;
 	nm_wifi_p2p_peer_get_type;
 	nm_wifi_p2p_peer_get_wfd_ies;
+	nm_wireguard_flags_get_type;
 	nm_wireguard_peer_append_allowed_ip;
 	nm_wireguard_peer_clear_allowed_ips;
 	nm_wireguard_peer_cmp;

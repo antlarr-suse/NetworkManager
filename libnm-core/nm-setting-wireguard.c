@@ -850,10 +850,10 @@ typedef struct {
 /*****************************************************************************/
 
 NM_GOBJECT_PROPERTIES_DEFINE_BASE (
+	PROP_FLAGS,
 	PROP_FWMARK,
 	PROP_LISTEN_PORT,
 	PROP_MTU,
-	PROP_PEER_ROUTES,
 	PROP_PRIVATE_KEY,
 	PROP_PRIVATE_KEY_FLAGS,
 );
@@ -865,9 +865,9 @@ typedef struct {
 	NMSettingSecretFlags private_key_flags;
 	guint32 fwmark;
 	guint32 mtu;
+	guint32 flags;
 	guint16 listen_port;
 	bool private_key_valid:1;
-	bool peer_routes:1;
 } NMSettingWireGuardPrivate;
 
 /**
@@ -983,19 +983,19 @@ nm_setting_wireguard_get_listen_port (NMSettingWireGuard *self)
 }
 
 /**
- * nm_setting_wireguard_get_peer_routes:
+ * nm_setting_wireguard_get_flags:
  * @self: the #NMSettingWireGuard instance
  *
- * Returns: whether automatically add peer routes.
+ * Returns: the #NMWireGuardFlags for this setting.
  *
  * Since: 1.16
  */
-gboolean
-nm_setting_wireguard_get_peer_routes (NMSettingWireGuard *self)
+NMWireGuardFlags
+nm_setting_wireguard_get_flags (NMSettingWireGuard *self)
 {
-	g_return_val_if_fail (NM_IS_SETTING_WIREGUARD (self), TRUE);
+	g_return_val_if_fail (NM_IS_SETTING_WIREGUARD (self), NM_WIREGUARD_FLAGS_NONE);
 
-	return NM_SETTING_WIREGUARD_GET_PRIVATE (self)->peer_routes;
+	return NM_SETTING_WIREGUARD_GET_PRIVATE (self)->flags;
 }
 
 /**
@@ -1611,6 +1611,16 @@ verify (NMSetting *setting, NMConnection *connection, GError **error)
 	if (!_nm_connection_verify_required_interface_name (connection, error))
 		return FALSE;
 
+	if (!NM_IN_SET (priv->flags, NM_WIREGUARD_FLAGS_NONE,
+	                             NM_WIREGUARD_FLAGS_NO_PEER_ROUTES)) {
+		g_set_error_literal (error,
+		                     NM_CONNECTION_ERROR,
+		                     NM_CONNECTION_ERROR_INVALID_PROPERTY,
+		                     _("invalid flags"));
+		g_prefix_error (error, "%s.%s: ", NM_SETTING_WIREGUARD_SETTING_NAME, NM_SETTING_WIREGUARD_FLAGS);
+		return FALSE;
+	}
+
 	if (!_nm_utils_secret_flags_validate (nm_setting_wireguard_get_private_key_flags (s_wg),
 	                                      NM_SETTING_WIREGUARD_SETTING_NAME,
 	                                      NM_SETTING_WIREGUARD_PRIVATE_KEY_FLAGS,
@@ -2196,6 +2206,9 @@ get_property (GObject *object, guint prop_id,
 	NMSettingWireGuardPrivate *priv = NM_SETTING_WIREGUARD_GET_PRIVATE (setting);
 
 	switch (prop_id) {
+	case PROP_FLAGS:
+		g_value_set_uint (value, priv->flags);
+		break;
 	case PROP_FWMARK:
 		g_value_set_uint (value, priv->fwmark);
 		break;
@@ -2204,9 +2217,6 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_MTU:
 		g_value_set_uint (value, priv->mtu);
-		break;
-	case PROP_PEER_ROUTES:
-		g_value_set_boolean (value, priv->peer_routes);
 		break;
 	case PROP_PRIVATE_KEY:
 		g_value_set_string (value, priv->private_key);
@@ -2228,6 +2238,9 @@ set_property (GObject *object, guint prop_id,
 	const char *str;
 
 	switch (prop_id) {
+	case PROP_FLAGS:
+		priv->flags = g_value_get_uint (value);
+		break;
 	case PROP_FWMARK:
 		priv->fwmark = g_value_get_uint (value);
 		break;
@@ -2236,9 +2249,6 @@ set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_MTU:
 		priv->mtu = g_value_get_uint (value);
-		break;
-	case PROP_PEER_ROUTES:
-		priv->peer_routes = g_value_get_boolean (value);
 		break;
 	case PROP_PRIVATE_KEY:
 		nm_clear_pointer (&priv->private_key, nm_free_secret);
@@ -2272,7 +2282,6 @@ nm_setting_wireguard_init (NMSettingWireGuard *setting)
 
 	priv->peers_arr = g_ptr_array_new ();
 	priv->peers_hash = g_hash_table_new (nm_pstr_hash, nm_pstr_equal);
-	priv->peer_routes = TRUE;
 }
 
 /**
@@ -2388,24 +2397,22 @@ nm_setting_wireguard_class_init (NMSettingWireGuardClass *klass)
 	                       | G_PARAM_STATIC_STRINGS);
 
 	/**
-	 * NMSettingWireGuard:peer-routes:
+	 * NMSettingWireGuard:flags:
 	 *
-	 * Whether to automatically add routes for the AllowedIPs ranges
-	 * of the peers. If %TRUE (the default), NetworkManager will automatically
+	 * The flags for the WireGuard setting. @NM_WIREGUARD_FLAGS_NO_PEER_ROUTES
+	 * indicates to not automatically add routes for the AllowedIPs ranges
+	 * of the peers. Otherwise (the default), NetworkManager will automatically
 	 * add routes in the routing tables according to ipv4.route-table and
 	 * ipv6.route-table.
-	 * If %FALSE, no such routes are added automatically. In this case, the
-	 * user may want to configure static routes in ipv4.routes and ipv6.routes,
-	 * respectively.
 	 *
 	 * Since: 1.16
 	 **/
-	obj_properties[PROP_PEER_ROUTES] =
-	    g_param_spec_boolean (NM_SETTING_WIREGUARD_PEER_ROUTES, "", "",
-	                          TRUE,
-	                            G_PARAM_READWRITE
-	                          | NM_SETTING_PARAM_INFERRABLE
-	                          | G_PARAM_STATIC_STRINGS);
+	obj_properties[PROP_FLAGS] =
+	    g_param_spec_uint (NM_SETTING_WIREGUARD_FLAGS, "", "",
+	                        0, G_MAXUINT32, 0,
+	                          G_PARAM_READWRITE
+	                        | NM_SETTING_PARAM_INFERRABLE
+	                        | G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * NMSettingWireGuard:mtu:
