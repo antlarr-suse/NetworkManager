@@ -834,7 +834,13 @@ typedef struct {
 	int (*link_set_address) (NMPlatform *self, int ifindex, gconstpointer address, size_t length);
 	int (*link_set_mtu) (NMPlatform *self, int ifindex, guint32 mtu);
 	gboolean (*link_set_name) (NMPlatform *self, int ifindex, const char *name);
-	gboolean (*link_set_sriov_params) (NMPlatform *self, int ifindex, guint num_vfs, int autoprobe);
+	void (*link_set_sriov_params_async) (NMPlatform *self,
+	                                     int ifindex,
+	                                     guint num_vfs,
+	                                     int autoprobe,
+	                                     NMPlatformAsyncCallback callback,
+	                                     gpointer callback_data,
+	                                     GCancellable *cancellable);
 	gboolean (*link_set_sriov_vfs) (NMPlatform *self, int ifindex, const NMPlatformVF *const *vfs);
 
 	char *   (*link_get_physical_port_id) (NMPlatform *self, int ifindex);
@@ -1270,7 +1276,15 @@ gboolean nm_platform_link_get_permanent_address (NMPlatform *self, int ifindex, 
 int nm_platform_link_set_address (NMPlatform *self, int ifindex, const void *address, size_t length);
 int nm_platform_link_set_mtu (NMPlatform *self, int ifindex, guint32 mtu);
 gboolean nm_platform_link_set_name (NMPlatform *self, int ifindex, const char *name);
-gboolean nm_platform_link_set_sriov_params (NMPlatform *self, int ifindex, guint num_vfs, int autoprobe);
+
+void nm_platform_link_set_sriov_params_async (NMPlatform *self,
+                                              int ifindex,
+                                              guint num_vfs,
+                                              int autoprobe,
+                                              NMPlatformAsyncCallback callback,
+                                              gpointer callback_data,
+                                              GCancellable *cancellable);
+
 gboolean nm_platform_link_set_sriov_vfs (NMPlatform *self, int ifindex, const NMPlatformVF *const *vfs);
 
 char    *nm_platform_link_get_physical_port_id (NMPlatform *self, int ifindex);
